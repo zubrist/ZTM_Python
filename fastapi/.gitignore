@@ -1,0 +1,36 @@
+# Virtual Environment
+.venv/
+venv/
+env/
+ENV/
+
+# Database
+db/app.db
+db/app.db-shm
+db/app.db-wal
+*.db
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# Environment variables
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
