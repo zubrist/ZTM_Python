@@ -1879,3 +1879,6 @@ app.add_middleware(TimingMiddleware)
 > 1. Automatic input validation with pydantic
 > 2. Auto-generated OpenAPI/Swagger documentation which is also interactive
 > 3. Seamless integration with Modern Ecosystem(ML/ DL libraries , OAuth , JWT, SQLALchemy , Tortoise, Docker , kubernetes etc.)
+
+
+

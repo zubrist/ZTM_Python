@@ -75,4 +75,4 @@ We have a single app named "models" that imports the models from the
 
 
 # Database URL (for reference)
-DATABASE_URL = f"sqlite://{DB_PATH}"
+DATABASE_URL = f"sqlite:///{DB_PATH.as_posix()}"
