@@ -19,9 +19,10 @@ Example:
 - Pydantic schema: Has 'password' (for input), not 'password_hash'
 """
 
-from pydantic import BaseModel, Field , EmailStr
+from pydantic import BaseModel, Field , EmailStr, field_validator
 from typing import Optional
 from datetime import datetime , date
+import re
 
 
 # ============ TODO SCHEMAS ============
@@ -81,6 +82,43 @@ class TodoUpdate(BaseModel):
     title: Optional[str] = Field(None, min_length=1, max_length=200)
     description: Optional[str] = Field(None, max_length=500)
     completed: Optional[bool] = None
+    
+    @field_validator('title')
+    @classmethod
+    def title_no_special_chars(cls, v: str) -> str:
+        """
+        @field_validator('title'): This runs BEFORE Pydantic saves the field
+        
+        WHAT IT DOES:
+        - Receives the raw title value from the request
+        - Checks if it contains special characters
+        - Returns cleaned value if valid, or raises error if invalid
+        
+        WHEN IT RUNS:
+        User sends PUT request → Pydantic receives title → Validator runs → ✓ Saved or ✗ Error
+        
+        SPECIAL CHARACTERS BLOCKED:
+        !@#$%^&*()_+-={}[]|:;<>?,./\~`
+        """
+        
+        # Only validate if title is actually provided (could be None for PATCH)
+        if v is None:
+            return v
+        
+        # Pattern: any character that is NOT alphanumeric, spaces, or hyphens
+        # Allows: letters, numbers, spaces, hyphens
+        # Blocks: !@#$%^&*()_+={}[]|:;<>?,./\~`
+        special_chars_pattern = r'[^a-zA-Z0-9\s\-]'
+        
+        if re.search(special_chars_pattern, v):
+            # Extract which special characters were found (for better error message)
+            found_chars = set(re.findall(r'[^a-zA-Z0-9\s\-]', v))
+            raise ValueError(
+                f"Title contains invalid characters: {', '.join(sorted(found_chars))}. "
+                f"Only letters, numbers, spaces, and hyphens are allowed."
+            )
+        
+        return v  # Return the validated (and unchanged) value
 
 
 class TodoResponse(BaseModel):

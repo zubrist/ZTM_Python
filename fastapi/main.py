@@ -14,12 +14,13 @@ This happens in the LIFESPAN event, which runs:
 - ONCE when app shuts down
 """
 
-from fastapi import FastAPI, HTTPException, Request, Response, status, Depends
+from fastapi import FastAPI, HTTPException, Request, Response, status, Depends, Form 
 from tortoise.contrib.fastapi import register_tortoise
 from config import TORTOISE_ORM, DATABASE_URL
 import logging
 import tzdata  # Ensure Windows has IANA timezone data for zoneinfo
-
+from pydantic import EmailStr
+from tortoise import Tortoise
 from models import *
 
 # import the request body schemas
@@ -395,22 +396,22 @@ async def fetch_todo_by_id(todo_id : int, respnse:Response , request:Request):
 # I will create a dependency parser function that will return unified Pydandic model
 
 
-async def perse_user_info(request : Request) -> UserCreate:
-    content_type = request.headers.get("content_type","")
+# async def perse_user_info(request : Request) -> UserCreate:
+#     content_type = request.headers.get("content_type","")
     
-    if "application/json" in content_type:
-        data = await request.json()
+#     if "application/json" in content_type:
+#         data = await request.json()
     
-    elif "form" in content_type:
-        form = await request.form()
-        data = dict(form)
-    else:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Content type not supported"
-        )       
+#     elif "form" in content_type:
+#         form = await request.form()
+#         data = dict(form)
+#     else:
+#         raise HTTPException(
+#             status_code=status.HTTP_400_BAD_REQUEST,
+#             detail="Content type not supported"
+#         )       
     
-    return UserCreate(**data)   
+#     return UserCreate(**data)   
 
     '''
     (**data) unpacks the dictionary into keyword arguments for the UserCreate Pydantic model.
@@ -420,13 +421,55 @@ async def perse_user_info(request : Request) -> UserCreate:
     
 
 @app.post("/api/v1_0/users", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-async def create_user(payload: UserCreate = Depends(perse_user_info)):
-    '''
-    dependency perse_user_info will parse the incoming request based on its content type (JSON or form data) 
-    and return a UserCreate Pydantic model instance.
-    The endpoint can then use this parsed data to create a new user in the database, 
-    and return the created user as a response.
-    '''
+async def create_user(payload: UserCreate , request:Request , response:Response):
+    
+   
     user = await Users.create(**payload.model_dump())
 
     return user  # FastAPI will convert this to JSON using UserResponse schema
+
+
+
+# creating a same post tbut it will accpet a form as query parameter instead of request body
+
+@app.post("/api/v1_0/users_form", response_model= UserResponse, status_code=status.HTTP_201_CREATED)
+async def create_user_form(
+    name : str = Form(...,min_length=1 , max_lenth=100),
+    email:EmailStr = Form(..., description=" Users Email address", example= "john@example.com"),
+    dob: date = Form (None, description="User`s date of birth in YYYY-MM-DD format", example="1990-01-01")):
+    
+    '''
+    This endpoint accepts form data directly as query parameters using the Form() function from FastAPI.
+    Each parameter (name, email, dob) is defined with Form(...), which tells FastAPI to expect these values
+    in the form data of the request.
+    The endpoint then creates a new user in the database using the provided form data and returns the created
+    user as a response.
+    '''
+    user = await Users.create(name= name , email= email, dob = dob)
+    
+    return user  # FastAPI will convert this to JSON using UserResponse schema
+    
+
+
+# PUT api to update a todo item by id
+
+
+@app.put("/api/v1_0/todos/{todo_id}", response_model=TodoResponse, status_code=status.HTTP_200_OK)
+async def update_todo(todo:TodoUpdate, existing_todo:Todo = Depends(get_todo_by_id)):
+    '''
+    This endpoint updates an existing TODO item by its ID.
+    It uses the get_todo_by_id dependency to fetch the existing TODO item from the database.
+    The incoming request body is validated against the TodoUpdate schema, which allows for partial updates.
+    The endpoint then updates the fields of the existing TODO item with the new values provided in the request body.
+    Finally, it saves the updated TODO item back to the database and returns the updated item as a response.
+    '''
+    # Update fields if they are provided in the request
+    if todo.title is not None:
+        existing_todo.title = todo.title
+    if todo.description is not None:
+        existing_todo.description = todo.description
+    if todo.completed is not None:
+        existing_todo.completed = todo.completed
+    # Save the updated TODO item to the database
+    await existing_todo.save()
+    return existing_todo  # FastAPI will convert this to JSON using TodoResponse schema
