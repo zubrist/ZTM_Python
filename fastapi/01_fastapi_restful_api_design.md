@@ -252,9 +252,17 @@ async def update_user(user_id: int, payload: UserUpdate):
     # bio is NOT in update_data — it stays unchanged in DB
     await user_repo.update(user_id, **update_data)
     return {"updated_fields": list(update_data.keys())}
-```
 
----
+@app.patch("/users/{user_id}")
+async def update_user(user_id: int, payload: UserUpdate):
+    update_data = payload.model_dump(exclude_none=True)
+    # If client sends {"bio": null} → update_data = {}  ✗ (can't set bio to null)
+    # If client sends {"name": "Bob"} → update_data = {"name": "Bob"} ✓
+    # bio is NOT in update_data — but we can't tell if client wanted to set it to null or just didn't include it
+    await user_repo.update(user_id, **update_data)
+    return {"updated_fields": list(update_data.keys())}
+
+```
 
 ## Q9. What is the purpose of `response_model_exclude_unset` in FastAPI, and when is it dangerous?
 
