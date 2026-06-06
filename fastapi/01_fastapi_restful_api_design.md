@@ -2102,9 +2102,9 @@ async def safe_patch(user_id: int, payload: UserPatch):
 
 ## Why fastAPi is fast to Run
 
-> 1. uvicorn Webserver , which is a ASGI Asynchronous Server gateway interface . 
-> 2. SGI : uses starlette ASGI python library , which is very lightweight
-> 3. Supports async and await python functions which allows to handle concurrent request 
+> 1. Uvicorn is an ASGI server, so FastAPI can handle many I/O-bound requests efficiently.
+> 2. FastAPI is built on Starlette, a lightweight ASGI framework with very low overhead.
+> 3. FastAPI supports async/await natively, enabling high concurrency for APIs.
 
 ## How fastapi first to code
 > 1. Automatic input validation with pydantic
